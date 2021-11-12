@@ -15,3 +15,19 @@
     clear: both;
     display: table;
 }
+
+.bold_link a:hover{
+
+  font-weight:bold;
+  text-decoration:none;
+  border-bottom:1px solid #ccc;
+  
+  }
+
+.align_left {
+  float: left;
+}
+
+.align_right {
+  float: right;
+}
