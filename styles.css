@@ -38,3 +38,12 @@
   width: 100%;
   text-align: right;
 }
+
+.toptexts2 {
+  animation: fadeEffect 3s; /* fading effect takes 3s */
+}
+
+@keyframes fadeEffect { /* from 0 to full opacity */
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
