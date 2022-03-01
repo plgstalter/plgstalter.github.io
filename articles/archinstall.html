@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf8">
+    <title>Pierre-Louis Gstalter</title>
+    <!-- Bootstrap core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+<body>
+    <div class="banner">
+      <nav>
+        <ul class="nav nav-pills pull-right">
+          <li role="presentation"><a href="/">Accueil</a></li>
+          <li role="presentation"><a href="/about.html">A propos de moi</a></li>
+          <li role="presentation"><a href="/projets.html">Projets</a></li>
+          <li role="presentation"><a href="/cv.html">CV</a></li>
+          <li role="presentation"><a href="./english_version/en_index.html">🇬🇧🇺🇸</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="container">
+      <div class="jumbotron">
+		<p>Voilà les étapes pour l’installation d’Arch sur un ancien mac.</p>
+		<ol type="1">
+		<li><p>Créer une clé USB bootable</p>
+		<div class="sourceCode" id="cb1"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">diskutil</span> list</span>
+		<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">diskutul</span> unmountDisk /dev/disk2</span>
+		<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">dd</span> if=~/Download/image.iso of=/dev/disk2 bs=8192</span>
+		<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">diskutil</span> eject /dev/disk2</span></code></pre></div></li>
+		<li><p>Lancer l’installation</p>
+		<p>Brancher la clé, allumer l’ordinateur en maintenant la touche
+		<code>option</code> (<code>alt</code>) enfoncée. Choisir
+		<code>EFI BOOT</code>.</p>
+		<p>On arrive dans <code>archiso</code>, l’utilitaire d’installation.
+		Tout d’abord, on met le clavier en azerty :</p>
+		<pre><code> loadkeys fr</code></pre>
+		<p>Ensuite, vérifions qu’on est en mode EFI :</p>
+		<pre><code> efivar -l</code></pre>
+		<p>Si quelque chose s’affiche, c’est que les fichiers EFI sont bien là.
+		C’est bon.</p>
+		<p>Il faut à présent partitionner le disque. Le plus simple est d’avoir
+		un boot (EFI) et un root. J’ai décidé d’ajouter un swap. Cette dernière
+		partition vient en renfort de la mémoire, et aide en cas de veille
+		prolongée (ce qui peut arriver sur un serveur).</p>
+		<p>Mon disque est <code>/dev/sda</code>. On va le partitionner ainsi
+		:</p>
+		<pre><code> parted /dev/sda</code></pre>
+		<p>Je dispose déjà d’un boot EFI et n’y touche pas.</p>
+		<p>Structure finale :</p>
+		<pre><code> . /dev/sda
+		 |_ sda1     boot
+		 |_ sda2     root
+		 |_ sda3     swap</code></pre>
+		<p>Il faut ensuite formater les différents membres :</p>
+		<div class="sourceCode" id="cb6"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">mkfs.vfat</span> <span class="at">-F32</span> /dev/sda1</span>
+		<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">mkfs.ext4</span> /dev/sda2</span>
+		<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">mkswap</span> /dev/sda3</span>
+		<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">swapon</span> /dev/sda3</span></code></pre></div>
+		<p>Ensuite, monter les disques :</p>
+		<div class="sourceCode" id="cb7"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mount</span> /dev/sda2 /mnt</span>
+		<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> /mnt/boot <span class="kw">&amp;&amp;</span> <span class="fu">mount</span> /dev/sda1 /mnt/boot</span></code></pre></div>
+		<p>Il faut à présent installer des paquets de base. Pour cela, vérifions
+		qu’il y a internet (avec câble ethernet) :</p>
+		<pre><code> ping gnu.org</code></pre>
+		<p>Puis</p>
+		<div class="sourceCode" id="cb9"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pacstrap</span> /mnt base base-devel linux linux-firmware vim networkmanager dhcpcd</span></code></pre></div>
+		<p>Maintenant, générer un fichier <code>fstab</code> :</p>
+		<div class="sourceCode" id="cb10"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">genfstab</span> <span class="at">-Up</span> /mnt <span class="op">&gt;</span> /mnt/etc/fstab</span>
+		<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">vim</span> /mnt/etc/fstab</span></code></pre></div>
+		<p>Il faut que les lignes se finissent ainsi :</p>
+		<ul>
+		<li>boot:1</li>
+		<li>root:2</li>
+		<li>swap:0</li>
+		</ul>
+		<p>De plus pour le root (ext4), on peut écrire
+		<code>rw,relatime,data=ordered,discard</code></p>
+		<p>On peut passer à l’étape suivante :</p>
+		<pre><code> arch-chroot /mnt /bin/bash</code></pre>
+		<p>Il faut générer les langues souhaitées :</p>
+		<pre><code> vim /etc/locale.gen</code></pre>
+		<p>(décommenter les lignes correspondantes) puis</p>
+		<pre><code> locale-gen</code></pre>
+		<p>Ensuite, expliquer au système comment se comporter :</p>
+		<div class="sourceCode" id="cb14"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> LANG=en_US.UTF-8 <span class="op">&gt;</span> /etc/locale.conf</span>
+		<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> KEYMAP=fr <span class="op">&gt;</span> /etc/vconsole.conf</span>
+		<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> nom_de_lordinateur <span class="op">&gt;</span> /etc/hostname</span></code></pre></div>
+		<p>La première ligne met en place la langue utilisée, la seconde le
+		clavier, et la dernière donne un nom à la machinne.</p>
+		<p>Il faut ensuite gérer l’heure et la data :</p>
+		<div class="sourceCode" id="cb15"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ln</span> <span class="at">-s</span> /usr/share/zoneinfo/Europe/Paris /etc/localtime <span class="kw">&amp;&amp;</span> <span class="ex">hwclock</span> <span class="at">--systohc</span> <span class="at">--utc</span></span></code></pre></div>
+		<p>Ajouter des métriques :</p>
+		<pre><code> echo &quot;coretemp\napplesmc&quot; &gt;&gt; /etc/modules</code></pre>
+		<p>Mettre en place internet pour le redémarrage :</p>
+		<pre><code> systemctl enable NetWorkManager &amp;&amp; systemctl enable dhcpcd</code></pre>
+		<p>mettre un mot de passe admin :</p>
+		<pre><code> passwd</code></pre>
+		<p>Finalement, le bootloader. Partie cruciale (sans elle, il faudra
+		redémarrer l’installation à zéro)</p>
+		<div class="sourceCode" id="cb19"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pacman</span> <span class="at">-S</span> dosfstools</span>
+		<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">bootctl</span> <span class="at">--path</span><span class="op">=</span>/boot install</span>
+		<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;default arch&quot;</span> <span class="op">&gt;</span> /boot/loader/loader.conf</span></code></pre></div>
+		<p>Et pour finir :</p>
+		<pre><code> vim /boot/loader/entries/arch.conf pour écrire :</code></pre>
+		<pre><code>title Arch Linux
+		linux /vmlinuz-linux
+		initrd /initramfs-linux.img
+		options root=/dev/sda2 rw elevator=deadline quiet splash
+		resume=/dev/sda3 nmi_watchdog=0</code></pre>
+		<p>On peut redémarrer ! Il faut simplement partir proprement :</p>
+		<div class="sourceCode" id="cb22"><pre
+		class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="bu">exit</span></span>
+		<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="fu">umount</span> <span class="at">-R</span> /mnt</span>
+		<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ex">reboot</span></span></code></pre></div>
+		<p>Penser à enlever la clé usb, et se connecter avec le compte root
+		créé.</p></li>
+		<li><p>Résultat</p>
+		<img src="../ressources/success.png" alt="image" width=80% />
+		<p>Depuis, le site tourne sur cette machine.</p></li>
+		</ol>
+</div>
+</div>
+</body>
+</html>
